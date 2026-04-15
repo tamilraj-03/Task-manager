@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster — Task Management System</title>
+    <meta name="description" content="A modern task management system with login, registration, and personal dashboards.">
+    <!-- Google Fonts for Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=23">
+    <!-- Confetti for Celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div style="display:flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;">
+            <div class="logo">
+                <span class="logo-icon">✦</span> TaskMaster
+            </div>
+            <div id="user-greeting" style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted); display: none;"></div>
+        </div>
+        <div class="nav-links">
+            <button id="theme-toggle" class="btn btn-icon">🌙</button>
+            <!-- Logged-out nav -->
+            <button id="nav-login" class="nav-btn active">Login</button>
+            <button id="nav-register" class="nav-btn">Register</button>
+            <!-- Logged-in nav (hidden by default) -->
+            <button id="nav-dashboard" class="nav-btn" style="display:none;">Today's Task</button>
+            <button id="nav-admin" class="nav-btn" style="display:none;">🛡️ Admin Panel</button>
+            <button id="nav-logout" class="nav-btn nav-btn-logout" style="display:none;">Logout</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Error & Success Messages -->
+        <div id="alert-box" class="alert hidden"></div>
+
+        <!-- Section 1: Login Page -->
+        <section id="login-section" class="view-section active">
+            <div class="card form-card auth-card">
+                <div class="auth-header">
+                    <div class="auth-icon">🔐</div>
+                    <h2>Welcome Back</h2>
+                    <p class="subtitle">Sign in to access your task dashboard</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email Address</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">✉</span>
+                            <input type="email" id="login-email" required placeholder="you@example.com">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="login-password" required placeholder="Enter your password">
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('login-password', this)">👁</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="login-submit-btn">Sign In</button>
+                </form>
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="#" id="goto-register" class="auth-link">Create one</a></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Registration Page -->
+        <section id="registration-section" class="view-section">
+            <div class="card form-card auth-card">
+                <div class="auth-header">
+                    <div class="auth-icon">🚀</div>
+                    <h2>Create Account</h2>
+                    <p class="subtitle">Set up your personal task dashboard</p>
+                </div>
+                <form id="registration-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" required placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" required placeholder="john@example.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="department">Department</label>
+                            <input type="text" id="department" required placeholder="Computer Science">
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Role</label>
+                            <input type="text" id="role" placeholder="e.g. Professor">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="reg-password">Password</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔒</span>
+                                <input type="password" id="reg-password" required placeholder="Min 6 characters" minlength="6">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reg-password', this)">👁</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-confirm-password">Confirm Password</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔒</span>
+                                <input type="password" id="reg-confirm-password" required placeholder="Repeat password" minlength="6">
+                                <button type="button" class="password-toggle" onclick="togglePasswordVisibility('reg-confirm-password', this)">👁</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="register-submit-btn">Create Account</button>
+                </form>
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="#" id="goto-login" class="auth-link">Sign in</a></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Task Dashboard (View) -->
+        <section id="view-task-section" class="view-section">
+            <div class="dashboard-header">
+                <h2 id="view-task-title">My Tasks</h2>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button id="goto-edit-tasks" class="btn btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        Edit Tasks
+                    </button>
+                    <button id="export-btn-view" class="btn btn-success" title="Download Excel" style="width: auto;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card dashboard-card">
+                <div id="task-cards-container" class="task-cards-grid">
+                    <!-- Read-only tasks will be injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Task Edit Dashboard -->
+        <section id="dashboard-section" class="view-section">
+            <div class="dashboard-header">
+                <button id="back-to-dashboard" class="btn btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Back to Dashboard
+                </button>
+                <h2 id="dashboard-title">Edit Tasks</h2>
+                <button id="export-btn" class="btn btn-success" title="Download Excel" style="width: auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Export
+                </button>
+            </div>
+            
+            <div class="card dashboard-card">
+                <div class="table-container full-width-table">
+                    <table class="task-grid" id="task-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Week</th>
+                                <th>Date</th>
+                                <th>Total Hours Handling</th>
+                                <th>Total Free Hours</th>
+                                <th>Session</th>
+                                <th>Class</th>
+                                <th>Timing</th>
+                                <th>Mentor</th>
+                                <th>Subject</th>
+                                <th>Unit</th>
+                                <th>Topics to Cover</th>
+                                <th>PPT Link</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="task-tbody">
+                            <!-- Task rows go here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dashboard-footer">
+                    <button id="add-task-row" class="btn btn-secondary">+ Add Row</button>
+                    <button id="save-tasks" class="btn btn-primary">Save All Changes</button>
+                </div>
+            </div>
+        </section>
+
+    <!-- Section 5: Admin Panel -->
+        <section id="admin-section" class="view-section">
+            <div class="dashboard-header">
+                <h2>🛡️ Admin Panel</h2>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button id="admin-export-all-btn" class="btn btn-success" style="width:auto;" title="Download Excel for All Users">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Export All Tasks
+                    </button>
+                    <button id="admin-register-btn" class="btn btn-primary" style="width:auto;">+ Register User</button>
+                </div>
+            </div>
+
+            <!-- Admin Register Form (inline, hidden by default) -->
+            <div id="admin-register-form-card" class="card form-card" style="display:none; margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 1rem; font-weight: 700;">Register New User</h3>
+                <form id="admin-register-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="admin-reg-name">Full Name</label>
+                            <input type="text" id="admin-reg-name" required placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-reg-email">Email</label>
+                            <input type="email" id="admin-reg-email" required placeholder="john@example.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="admin-reg-dept">Department</label>
+                            <input type="text" id="admin-reg-dept" required placeholder="Computer Science">
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-reg-role">Role</label>
+                            <input type="text" id="admin-reg-role" placeholder="e.g. Professor">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="admin-reg-password">Password</label>
+                            <input type="password" id="admin-reg-password" required placeholder="Min 6 chars" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="admin-reg-isadmin">Admin?</label>
+                            <select id="admin-reg-isadmin">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="flex:1;">Create User</button>
+                        <button type="button" id="admin-register-cancel" class="btn btn-secondary" style="flex:0.5;">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card dashboard-card">
+                <div class="table-container">
+                    <table class="data-table" id="admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Role</th>
+                                <th>Tasks</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-users-tbody">
+                            <!-- Admin user rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Today's Task Modal Overlay -->
+    <div id="todays-task-overlay" class="todays-task-overlay">
+        <div class="todays-task-modal">
+            <div class="todays-task-modal-header">
+                <div>
+                    <h2 id="todays-task-date" class="todays-task-title">Today's Tasks</h2>
+                    <p id="todays-task-subtitle" class="todays-task-subtitle"></p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="copy-todays-task" class="btn btn-secondary btn-icon" title="Copy All Tasks" style="padding: 0.4rem; display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <button id="send-todays-task" class="btn btn-secondary btn-icon" title="Send All Tasks via WhatsApp" style="padding: 0.4rem; display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                    <button id="close-todays-task" class="todays-task-close" title="Close">&times;</button>
+                </div>
+            </div>
+            <div id="todays-task-list" class="todays-task-list">
+                <!-- Today's tasks injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin: View User Tasks Modal -->
+    <div id="admin-tasks-overlay" class="todays-task-overlay">
+        <div class="todays-task-modal" style="max-width: 900px;">
+            <div class="todays-task-modal-header">
+                <div>
+                    <h2 id="admin-tasks-title" class="todays-task-title">User Tasks</h2>
+                    <p id="admin-tasks-subtitle" class="todays-task-subtitle"></p>
+                </div>
+                <button id="close-admin-tasks" class="todays-task-close" title="Close">&times;</button>
+            </div>
+            <div id="admin-tasks-list" class="todays-task-list">
+                <!-- User tasks injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/script.js?v=25"></script>
+</body>
+</html>
