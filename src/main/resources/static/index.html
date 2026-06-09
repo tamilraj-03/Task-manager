@@ -22,6 +22,9 @@
         </div>
         <div class="nav-links">
             <button id="theme-toggle" class="btn btn-icon">🌙</button>
+            <div id="notification-bell-container" style="display:none; position: relative;">
+                <button id="notification-bell" class="btn btn-icon" title="Smart Reminders">🔔<span id="notification-badge" class="badge-dot" style="display:none;"></span></button>
+            </div>
             <!-- Logged-out nav -->
             <button id="nav-login" class="nav-btn active">Login</button>
             <button id="nav-register" class="nav-btn">Register</button>
@@ -312,6 +315,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Smart Reminders Toasts Container -->
+    <div id="smart-reminders-container" class="smart-reminders-container"></div>
 
     <script src="js/script.js?v=25"></script>
 </body>

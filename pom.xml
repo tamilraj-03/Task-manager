@@ -38,6 +38,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- H2 Database for Local Testing -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- Apache POI for Excel Export -->
     <dependency>
       <groupId>org.apache.poi</groupId>
