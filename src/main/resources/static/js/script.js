@@ -1487,9 +1487,9 @@ window.startSmartReminders = function() {
         const overdue = window.currentTasks.filter(t => t.taskDate && t.taskDate < todayISO && !t.completed);
         
         if (pendingToday.length > 0) {
-            showSmartReminder('Tasks Due Today', \`You have \${pendingToday.length} task(s) to complete today!\`);
+            showSmartReminder('Tasks Due Today', `You have ${pendingToday.length} task(s) to complete today!`);
         } else if (overdue.length > 0) {
-            showSmartReminder('Overdue Tasks', \`You have \${overdue.length} overdue task(s). Keep it up!\`);
+            showSmartReminder('Overdue Tasks', `You have ${overdue.length} overdue task(s). Keep it up!`);
         }
     };
 
