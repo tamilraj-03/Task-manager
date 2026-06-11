@@ -534,43 +534,6 @@ window.toggleTodayTaskComplete = async function(taskId, btn) {
             if (document.getElementById(`today-badge-${taskId}`)) document.getElementById(`today-badge-${taskId}`).textContent = 'In Progress';
             document.getElementById(`today-task-${taskId}`)?.classList.remove('todays-task-item--done');
         }
-
-        // Update task state in window.currentTasks & sync main dashboard UI if loaded
-        if (window.currentTasks) {
-            const t = window.currentTasks.find(x => x.id === taskId);
-            if (t) t.completed = newState;
-            
-            const cardContainer = document.getElementById('task-cards-container');
-            if (cardContainer) {
-                renderMonthlyProgress(window.currentTasks, cardContainer);
-                renderSyllabusCoverage(window.currentTasks, cardContainer);
-            }
-
-            // Sync main card's checkbox and classes
-            const mainCards = document.getElementById('task-cards-container')?.children;
-            if (mainCards) {
-                Array.from(mainCards).forEach(card => {
-                    const checkbox = card.querySelector(`input[type="checkbox"][onchange*="${taskId}"]`);
-                    if (checkbox) {
-                        checkbox.checked = newState;
-                        const badge = card.querySelector('.status-badge');
-                        if (newState) {
-                            card.classList.add('completed-task');
-                            if (badge) {
-                                badge.className = 'status-badge badge-completed';
-                                badge.textContent = 'Completed';
-                            }
-                        } else {
-                            card.classList.remove('completed-task');
-                            if (badge) {
-                                badge.className = 'status-badge badge-in-progress';
-                                badge.textContent = 'In Progress';
-                            }
-                        }
-                    }
-                });
-            }
-        }
     } catch (e) {
         btn.classList.remove('todays-complete-btn--loading');
         btn.innerHTML = isCurrentlyDone ? '\u2713 Completed' : 'Mark Complete';
@@ -730,8 +693,6 @@ async function openTaskView(userId, userName) {
         container.innerHTML = '';
         
         renderMonthlyProgress(tasks, container);
-        renderSyllabusCoverage(tasks, container);
-        if(window.startSmartReminders) window.startSmartReminders();
 
         if (tasks.length === 0) {
             container.innerHTML = `
@@ -833,7 +794,6 @@ window.toggleTaskComplete = async function(checkbox, taskId) {
         const t = window.currentTasks.find(x => x.id === taskId);
         if (t) t.completed = isCompleted;
         renderMonthlyProgress(window.currentTasks, document.getElementById('task-cards-container'));
-        renderSyllabusCoverage(window.currentTasks, document.getElementById('task-cards-container'));
     }
 
     try {
@@ -895,160 +855,6 @@ function renderMonthlyProgress(tasks, container) {
         progressWrapper.innerHTML = '';
     }
 }
-
-// ─── Academic Syllabus Coverage Tracker ──────────────────────────
-function renderSyllabusCoverage(tasks, container, isAdminView = false) {
-    const subjects = {};
-    tasks.forEach(task => {
-        const subjectName = (task.subject || '').trim() || 'General';
-        const unitName = (task.unit || '').trim() || 'Unassigned Unit';
-        
-        if (!subjects[subjectName]) {
-            subjects[subjectName] = {
-                totalTasks: 0,
-                completedTasks: 0,
-                units: {}
-            };
-        }
-        
-        const subj = subjects[subjectName];
-        subj.totalTasks += 1;
-        if (task.completed) {
-            subj.completedTasks += 1;
-        }
-        
-        if (!subj.units[unitName]) {
-            subj.units[unitName] = {
-                totalTasks: 0,
-                completedTasks: 0,
-                topics: []
-            };
-        }
-        
-        const unt = subj.units[unitName];
-        unt.totalTasks += 1;
-        if (task.completed) {
-            unt.completedTasks += 1;
-        }
-        
-        const topicLines = task.topicsToCover ? task.topicsToCover.split('\n').map(t => t.trim()).filter(Boolean) : [];
-        if (topicLines.length > 0) {
-            topicLines.forEach(line => {
-                unt.topics.push({
-                    name: line,
-                    completed: !!task.completed
-                });
-            });
-        } else {
-            unt.topics.push({
-                name: (task.sessionDetails || 'Session') + ' class',
-                completed: !!task.completed
-            });
-        }
-    });
-
-    const wrapperId = isAdminView ? 'admin-syllabus-progress-wrapper' : 'syllabus-progress-wrapper';
-    let wrapper = document.getElementById(wrapperId);
-    if (!wrapper) {
-        wrapper = document.createElement('div');
-        wrapper.id = wrapperId;
-        wrapper.className = 'syllabus-wrapper';
-        
-        if (isAdminView) {
-            container.insertBefore(wrapper, container.firstChild);
-        } else {
-            const monthlyWrapper = document.getElementById('monthly-progress-wrapper');
-            if (monthlyWrapper) {
-                monthlyWrapper.parentNode.insertBefore(wrapper, monthlyWrapper.nextSibling);
-            } else {
-                container.parentNode.insertBefore(wrapper, container);
-            }
-        }
-    }
-
-    const subjectKeys = Object.keys(subjects);
-    if (subjectKeys.length === 0) {
-        wrapper.innerHTML = '';
-        return;
-    }
-
-    let html = `<h3 style="margin-bottom: 1rem; font-size: 1.2rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.02em;">Syllabus Coverage Tracker</h3>`;
-    
-    subjectKeys.sort().forEach((subjKey, idx) => {
-        const subj = subjects[subjKey];
-        const overallPercent = Math.round((subj.completedTasks / subj.totalTasks) * 100) || 0;
-        const cardId = `syllabus-card-${isAdminView ? 'admin-' : ''}${idx}`;
-        
-        html += `
-            <div class="syllabus-subject-card" id="${cardId}">
-                <div class="syllabus-subject-header" onclick="toggleSyllabusCard('${cardId}')">
-                    <div class="syllabus-subject-info">
-                        <div class="syllabus-subject-title-row">
-                            <span class="syllabus-subject-name">📚 ${subjKey}</span>
-                            <span class="syllabus-subject-percentage">${overallPercent}% Covered</span>
-                        </div>
-                        <div class="progress-container" style="margin-top: 0.5rem; width: 100%;">
-                            <div class="progress-track" style="height: 6px;">
-                                <div class="progress-fill" style="width: ${overallPercent}%; background-color: var(--success-color);"></div>
-                            </div>
-                            <span class="progress-text" style="font-size: 0.75rem; color: var(--text-muted); min-width: auto; margin-left: 0.5rem;">
-                                ${subj.completedTasks}/${subj.totalTasks} sessions
-                            </span>
-                        </div>
-                    </div>
-                    <div class="chevron-icon">▼</div>
-                </div>
-                <div class="syllabus-details-content">
-                    <div class="syllabus-units-grid">
-        `;
-
-        const unitKeys = Object.keys(subj.units);
-        unitKeys.sort().forEach(unitKey => {
-            const unt = subj.units[unitKey];
-            const unitPercent = Math.round((unt.completedTasks / unt.totalTasks) * 100) || 0;
-            
-            html += `
-                <div class="syllabus-unit-card">
-                    <div class="syllabus-unit-header">
-                        <span class="syllabus-unit-title">📍 ${unitKey}</span>
-                        <span class="syllabus-unit-percent">${unitPercent}%</span>
-                    </div>
-                    <div class="progress-track" style="height: 4px; margin-bottom: 0.75rem;">
-                        <div class="progress-fill" style="width: ${unitPercent}%; background-color: var(--primary-color);"></div>
-                    </div>
-                    <div class="topic-pills-container">
-            `;
-
-            unt.topics.forEach(topic => {
-                html += `
-                    <span class="topic-pill ${topic.completed ? 'topic-pill--completed' : 'topic-pill--pending'}" title="${topic.name}">
-                        ${topic.completed ? '✓ ' : '○ '}${topic.name}
-                    </span>
-                `;
-            });
-
-            html += `
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    wrapper.innerHTML = html;
-}
-
-window.toggleSyllabusCard = function(cardId) {
-    const card = document.getElementById(cardId);
-    if (card) {
-        card.classList.toggle('active');
-    }
-};
 
 // ─── Celebration Toast ──────────────────────────────────────────
 function showCelebrationToast(message) {
@@ -1113,10 +919,7 @@ function addTaskRow(task = {}) {
         <td><input type="text" class="t-mentor" value="${task.mentor || ''}" placeholder="Mentor Name"></td>
         <td><input type="text" class="t-subject" value="${task.subject || ''}" placeholder="Subject"></td>
         <td><input type="text" class="t-unit" value="${task.unit || ''}" placeholder="Unit"></td>
-        <td>
-            <textarea class="t-topics" placeholder="Topics...">${task.topicsToCover || ''}</textarea>
-            <button class="btn-ai" onclick="generateAILessonPlan(this)" title="Auto-fill topics using AI">✨ AI Auto-Fill</button>
-        </td>
+        <td><textarea class="t-topics" placeholder="Topics...">${task.topicsToCover || ''}</textarea></td>
         <td><input type="text" class="t-ppt" value="${task.pptLink || ''}" placeholder="Link"></td>
         <td><button class="delete-btn" onclick="this.closest('tr').remove()">X</button></td>
     `;
@@ -1310,7 +1113,6 @@ window.adminViewUserTasks = async function(userId, userName) {
         const tasks = await res.json();
         
         listContainer.innerHTML = '';
-        renderSyllabusCoverage(tasks, listContainer, true);
         if (tasks.length === 0) {
             listContainer.innerHTML = '<div style="text-align:center; padding:2rem;">This user has no tasks.</div>';
             return;
@@ -1361,8 +1163,86 @@ if (adminTasksOverlay) {
 }
 
 
+// ─── Google Sign-In Integration ────────────────────────────────
+async function initGoogleSignIn() {
+    try {
+        const res = await fetch(`${API_BASE}/config/google-client-id`);
+        if (!res.ok) throw new Error('Failed to load Google configuration');
+        const data = await res.json();
+        const clientId = data.clientId;
+        
+        if (!clientId || clientId.includes('YOUR_GOOGLE_CLIENT_ID')) {
+            console.warn('Google Sign-In: Client ID is not configured.');
+            const btnContainer = document.getElementById('google-signin-btn-container');
+            const divider = document.querySelector('.auth-divider');
+            if (btnContainer) btnContainer.style.display = 'none';
+            if (divider) divider.style.display = 'none';
+            return;
+        }
+
+        // Wait for google library to load if it hasn't yet
+        if (typeof google === 'undefined' || !google.accounts) {
+            setTimeout(initGoogleSignIn, 200);
+            return;
+        }
+
+        google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleSignIn
+        });
+
+        google.accounts.id.renderButton(
+            document.getElementById('google-signin-button'),
+            { 
+                theme: 'outline', 
+                size: 'large', 
+                width: '100%', 
+                text: 'signin_with',
+                shape: 'rectangular'
+            }
+        );
+    } catch (err) {
+        console.error('Error initializing Google Sign-In:', err);
+    }
+}
+
+async function handleGoogleSignIn(response) {
+    const credential = response.credential;
+    
+    // Show spinner / loading state
+    const buttonContainer = document.getElementById('google-signin-btn-container');
+    const originalHtml = buttonContainer.innerHTML;
+    buttonContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500; display:flex; align-items:center; gap:0.5rem; justify-content:center; padding: 0.5rem;"><span class="btn-spinner"></span> Authenticating with Google...</div>';
+
+    try {
+        const res = await fetch(`${API_BASE}/login/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            showAlert(`Logged in successfully as ${data.name}! 🚀`);
+            loginUser(data);
+        } else {
+            showAlert(data.message || 'Google authentication failed.', true);
+            // Restore button container structure
+            buttonContainer.innerHTML = '<div id="google-signin-button"></div>';
+            initGoogleSignIn();
+        }
+    } catch (err) {
+        showAlert('Server error during Google login. Please try again.', true);
+        buttonContainer.innerHTML = '<div id="google-signin-button"></div>';
+        initGoogleSignIn();
+    }
+}
+
+
 // ─── Initialize: Check Session ──────────────────────────────────
 (function init() {
+    initGoogleSignIn();
     const savedUser = localStorage.getItem('loggedInUser');
     if (savedUser) {
         try {
@@ -1387,120 +1267,3 @@ if (adminTasksOverlay) {
     setLoggedOutUI();
     switchSection('login');
 })();
-
-// ─── AI Auto-Fill Lesson Planner ───
-window.generateAILessonPlan = async function(btn) {
-    const row = btn.closest('tr');
-    const subject = row.querySelector('.t-subject').value.trim().toLowerCase();
-    const unit = row.querySelector('.t-unit').value.trim();
-    const textarea = row.querySelector('.t-topics');
-
-    if (!subject) {
-        showAlert('Please enter a Subject first.', true);
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<div class="ai-spinner"></div> Generating...';
-
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    // Simulated AI Logic (dictionary of common topics)
-    const knowledgeBase = {
-        'computer networks': ['OSI Model & TCP/IP Protocol Suite', 'Network Topologies', 'Routing Algorithms', 'Transport Layer Protocols', 'Application Layer: HTTP, FTP, DNS'],
-        'operating systems': ['Process Management & Scheduling', 'Memory Management & Paging', 'File Systems', 'Concurrency & Deadlocks', 'Virtualization Basics'],
-        'data structures': ['Arrays & Linked Lists', 'Stacks & Queues', 'Trees & Binary Search Trees', 'Graphs & Graph Algorithms', 'Sorting & Searching Techniques'],
-        'java': ['OOP Concepts: Inheritance, Polymorphism', 'Exception Handling', 'Java Collections Framework', 'Multithreading & Concurrency', 'Java 8 Streams & Lambdas'],
-        'database': ['Relational Model & SQL', 'Normalization & ER Diagrams', 'Transaction Management (ACID)', 'Concurrency Control', 'Indexing & Hashing'],
-        'default': ['Introduction & Core Concepts', 'Key Principles & Architecture', 'Practical Applications', 'Case Studies & Examples', 'Summary & Assessment']
-    };
-
-    let topicsArray = [];
-    let matchedSubject = Object.keys(knowledgeBase).find(key => subject.includes(key));
-    
-    if (matchedSubject) {
-        topicsArray = knowledgeBase[matchedSubject];
-    } else {
-        topicsArray = knowledgeBase['default'];
-    }
-
-    // Auto-fill logic
-    let numUnit = parseInt(unit) || 1;
-    let selectedTopic = topicsArray[(numUnit - 1) % topicsArray.length];
-    
-    // Add subtopics for realism
-    let formattedOutput = `${selectedTopic}\n- Subtopic A\n- Subtopic B\n- Subtopic C`;
-    
-    textarea.value = formattedOutput;
-
-    btn.disabled = false;
-    btn.innerHTML = '✨ AI Auto-Fill';
-    if(typeof showCelebrationToast === 'function') {
-        showCelebrationToast('AI Lesson Plan Generated!');
-    } else {
-        showAlert('AI Lesson Plan Generated!');
-    }
-};
-
-// ─── Automated Smart Reminders ───
-let smartRemindersInterval = null;
-
-function showSmartReminder(title, message) {
-    const container = document.getElementById('smart-reminders-container');
-    const badge = document.getElementById('notification-badge');
-    if(badge) badge.style.display = 'block';
-
-    const toast = document.createElement('div');
-    toast.className = 'toast-reminder';
-    toast.innerHTML = `
-        <div class="toast-icon">🔔</div>
-        <div class="toast-content">
-            <h4>${title}</h4>
-            <p>${message}</p>
-        </div>
-        <button class="toast-close" onclick="this.parentElement.classList.remove('show'); setTimeout(() => this.parentElement.remove(), 400);">&times;</button>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Trigger animation
-    setTimeout(() => toast.classList.add('show'), 50);
-
-    // Auto-hide after 10 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 400);
-    }, 10000);
-}
-
-window.startSmartReminders = function() {
-    if (smartRemindersInterval) clearInterval(smartRemindersInterval);
-    
-    const checkTasks = () => {
-        if (!window.currentTasks || window.currentTasks.length === 0) return;
-        
-        const now = new Date();
-        const todayISO = now.toISOString().split('T')[0];
-        
-        const pendingToday = window.currentTasks.filter(t => t.taskDate === todayISO && !t.completed);
-        const overdue = window.currentTasks.filter(t => t.taskDate && t.taskDate < todayISO && !t.completed);
-        
-        if (pendingToday.length > 0) {
-            showSmartReminder('Tasks Due Today', `You have ${pendingToday.length} task(s) to complete today!`);
-        } else if (overdue.length > 0) {
-            showSmartReminder('Overdue Tasks', `You have ${overdue.length} overdue task(s). Keep it up!`);
-        }
-    };
-
-    // Check immediately, then every 5 minutes
-    setTimeout(checkTasks, 2000);
-    smartRemindersInterval = setInterval(checkTasks, 5 * 60 * 1000);
-};
-
-// Clear notification badge on click
-document.getElementById('notification-bell')?.addEventListener('click', () => {
-    const badge = document.getElementById('notification-badge');
-    if(badge) badge.style.display = 'none';
-    if(currentUserId) openTodaysTaskModal();
-});

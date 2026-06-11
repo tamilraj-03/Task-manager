@@ -6,17 +6,20 @@ import com.taskmanager.repository.TaskRepository;
 import com.taskmanager.repository.UserRepository;
 import com.taskmanager.service.ExcelExportService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -31,6 +34,9 @@ public class ApiController {
 
     @Autowired
     private ExcelExportService excelExportService;
+
+    @Value("${google.client.id:}")
+    private String googleClientId;
 
     @PostMapping("/users")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
@@ -276,5 +282,74 @@ public class ApiController {
                 .headers(headers)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(new InputStreamResource(in));
+    }
+
+    @GetMapping("/config/google-client-id")
+    public ResponseEntity<Map<String, String>> getGoogleClientId() {
+        Map<String, String> config = new HashMap<>();
+        config.put("clientId", googleClientId);
+        return ResponseEntity.ok(config);
+    }
+
+    @PostMapping("/login/google")
+    public ResponseEntity<?> loginGoogle(@RequestBody Map<String, String> body) {
+        String credential = body.get("credential");
+        if (credential == null || credential.trim().isEmpty()) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Credential token is required.");
+            return ResponseEntity.badRequest().body(error);
+        }
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String verifyUrl = "https://oauth2.googleapis.com/tokeninfo?id_token=" + credential;
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payload = restTemplate.getForObject(verifyUrl, Map.class);
+            
+            if (payload == null || payload.get("error_description") != null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("message", "Invalid Google token.");
+                return ResponseEntity.status(401).body(error);
+            }
+            
+            String email = (String) payload.get("email");
+            String name = (String) payload.get("name");
+            
+            if (email == null || email.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("message", "Email not found in Google token.");
+                return ResponseEntity.status(401).body(error);
+            }
+            
+            Optional<User> userOptional = userRepository.findByEmail(email);
+            User user;
+            if (userOptional.isPresent()) {
+                user = userOptional.get();
+            } else {
+                user = new User();
+                user.setEmail(email);
+                user.setName(name != null ? name : email.split("@")[0]);
+                user.setDepartment("Google Sign-In");
+                user.setRole("Member");
+                user.setPassword("google_oauth_" + UUID.randomUUID().toString());
+                user.setIsAdmin(false);
+                user = userRepository.save(user);
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("name", user.getName());
+            response.put("email", user.getEmail());
+            response.put("department", user.getDepartment());
+            response.put("role", user.getRole());
+            response.put("isAdmin", user.getIsAdmin() != null && user.getIsAdmin());
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Authentication failed: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
     }
 }

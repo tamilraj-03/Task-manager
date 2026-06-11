@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="css/style.css?v=23">
     <!-- Confetti for Celebration -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -22,9 +24,6 @@
         </div>
         <div class="nav-links">
             <button id="theme-toggle" class="btn btn-icon">🌙</button>
-            <div id="notification-bell-container" style="display:none; position: relative;">
-                <button id="notification-bell" class="btn btn-icon" title="Smart Reminders">🔔<span id="notification-badge" class="badge-dot" style="display:none;"></span></button>
-            </div>
             <!-- Logged-out nav -->
             <button id="nav-login" class="nav-btn active">Login</button>
             <button id="nav-register" class="nav-btn">Register</button>
@@ -65,6 +64,12 @@
                     </div>
                     <button type="submit" class="btn btn-primary" id="login-submit-btn">Sign In</button>
                 </form>
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                <div id="google-signin-btn-container" style="display: flex; justify-content: center; margin-top: 1rem; width: 100%;">
+                    <div id="google-signin-button"></div>
+                </div>
                 <div class="auth-footer">
                     <p>Don't have an account? <a href="#" id="goto-register" class="auth-link">Create one</a></p>
                 </div>
@@ -315,9 +320,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Smart Reminders Toasts Container -->
-    <div id="smart-reminders-container" class="smart-reminders-container"></div>
 
     <script src="js/script.js?v=25"></script>
 </body>
